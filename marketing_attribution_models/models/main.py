@@ -1,7 +1,7 @@
 from my_model import HMODELS
 
 
-def main(model_name, channels, conv_value):
+def heurist_models(model_name, channels, conv_value):
     """
     Função que carrega um modelo que foi implementado
     e aplica em um pd.Series contendo listas de canais.
