@@ -1,7 +1,7 @@
 from my_model import HMODELS
 
 
-def heurist_models(model_name, channels, conv_value):
+def heurist_models(model_name, channels, conv_value, args=None):
     """
     Função que carrega um modelo que foi implementado
     e aplica em um pd.Series contendo listas de canais.
@@ -20,10 +20,15 @@ def heurist_models(model_name, channels, conv_value):
     -------
     results : pd.Series
     """
+
     my_model = HMODELS(channels)
+
     if callable(model_name):
         my_model.load_model(model_name)
+
     else:
         my_model.load_custom_model(model_name)
-    my_model.fit()
-    return my_model.apply_value(conv_value)
+
+    my_model.fit(*args)
+    my_model.apply_value(conv_value)
+    return my_model.get_df(), my_model.group_results()
