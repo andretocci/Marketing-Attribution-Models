@@ -1,4 +1,5 @@
 import warnings
+from numpy.lib.function_base import diff
 
 import pandas as pd
 
@@ -9,6 +10,7 @@ class HMODELS:
     def __init__(self, channels):
         self.model = None
         self.results = None
+        self.df = None
         self.channels = channels
 
     def load_model(self, model_name):
@@ -47,6 +49,16 @@ class HMODELS:
         else:
             self.model = model
 
+    def __get_channels(self):
+        """
+        Loads self.channels attribute.
+
+        Returns
+        -------
+        self.channels : pd.Series
+        """
+        return self.channels
+
     def __get_model(self):
         """
         Loads self.model attribute.
@@ -63,7 +75,7 @@ class HMODELS:
         else:
             return self.model
 
-    def fit(self):
+    def fit(self, args=None):
         """
         Apply loaded model.
 
@@ -71,7 +83,10 @@ class HMODELS:
         -------
         None
         """
-        self.results = self.channels.apply(self.__get_model())
+        if args is None:
+            self.results = self.channels.apply(lambda x: self.__get_model()(x))
+        else:
+            self.results = self.channels.apply(lambda x: self.__get_model()(x, *args))
 
     def __get_results(self):
         """
@@ -102,15 +117,41 @@ class HMODELS:
         -------
         results : pd.Series
         """
-        results = self.__get_results()
-        return results * value
+        self.results = self.__get_results() * value
+
+    def generate_df(self):
+        """ """
+        self.df = pd.DataFrame(
+            {"channel": self.__get_channels(), "result": self.__get_results()}
+        )
+
+    def get_df(self):
+        """ """
+        if self.df is None:
+            self.generate_df()
+
+        return self.df
+
+    def group_results(self):
+        """ """
+        return (
+            pd.DataFrame(
+                {
+                    "channel": self.__get_channels().explode(),
+                    "result": self.__get_results().explode(),
+                }
+            )
+            .query("result > 0")
+            .groupby(["channel"])["result"]
+            .sum()
+        )
 
 
 if __name__ == "__main__":
     channels = pd.Series([["x", "y", "z"], ["x", "y", "z", "y", "z"], ["z"]])
     values = pd.Series([1, 7, 22])
     my_model = HMODELS(channels)
-    my_model.load_model("last_click")
-    my_model.fit()
-    res = my_model.apply_value(values)
-    print(res)
+    my_model.load_model("last_click_non")
+    my_model.fit("z")
+    my_model.apply_value(values)
+    print(my_model.get_df(), "\n", my_model.group_results())
