@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 from .models import heuristic
+from .models.main import heuristic_models
 from .models import markov as mk
 from .data import random_data
 from .data_prep import journey
@@ -702,52 +703,42 @@ class MAM:
         """
         model_name = "attribution_last_click_heuristic"
 
-        # Results part 1: Column values
-        # Results in the same format as the DF
-        channels_value = self.channels.apply(heuristic.last_click)
-        # multiplying the results with the conversion value
-        channels_value = channels_value * self.conversion_value
-        # multiplying with the boolean column that indicates whether the conversion
-        # happened
-        channels_value = channels_value * self.journey_with_conv.apply(int)
-        channels_value = channels_value.apply(lambda values: values.tolist())
+        journey_res, grouped_res = heuristic_models(
+            "last_click",
+            self.channels,
+            self.conversion_value,
+            self.journey_with_conv,
+            args=None,
+        )
 
         # Adding the results to self.DataFrame
         self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
+        self.data_frame[model_name] = (
+            journey_res["result"]
+            .apply(lambda x: self.sep.join([str(value) for value in x]))
+            .copy()
         )
 
         # Results part 2: Results
         if group_by_channels_models:
 
-            # Selecting last channel from the series
-            channels_series = self.channels.apply(lambda x: x[-1])
-
-            # Creating a data_frame where we have the last channel and the
-            # conversion values
-            frame = channels_series.to_frame(name="channels")
-            # multiplying with the boolean column that indicates if the conversion
-            # happened
-            frame["value"] = self.conversion_value * self.journey_with_conv.apply(int)
-
-            # Grouping by channels and adding the values
-            frame = frame.groupby(["channels"])["value"].sum()
-
             # Grouped Results
             if isinstance(self.group_by_channels_models, pd.DataFrame):
-                frame = frame.reset_index()
-                frame.columns = ["channels", model_name]
+                grouped_res = grouped_res.reset_index()
+                grouped_res.columns = ["channels", model_name]
                 self.group_by_channels_models = pd.merge(
-                    self.group_by_channels_models, frame, how="outer", on=["channels"]
+                    self.group_by_channels_models,
+                    grouped_res,
+                    how="outer",
+                    on=["channels"],
                 ).fillna(0)
             else:
-                self.group_by_channels_models = frame.reset_index()
+                self.group_by_channels_models = grouped_res.reset_index()
                 self.group_by_channels_models.columns = ["channels", model_name]
         else:
-            frame = "group_by_channels_models = False"
+            grouped_res = "group_by_channels_models = False"
 
-        self._last_click = (channels_value, frame)
+        self._last_click = (journey_res, grouped_res)
 
         return self._last_click
 
