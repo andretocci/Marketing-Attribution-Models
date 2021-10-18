@@ -3,7 +3,7 @@ import pandas as pd
 from my_model import HMODELS
 
 
-def heurist_models(model_name, channels, conv_value=None, has_conv=None, args=None):
+def heuristic_models(model_name, channels, conv_value=None, has_conv=None, args=None):
     """
     Função que carrega um modelo que foi implementado
     e aplica em um pd.Series contendo listas de canais.
@@ -67,10 +67,10 @@ if __name__ == "__main__":
 
     model = "last_click_non"
     custom_param = "z"
-    results = heurist_models(model, channels, values, has_conv, args=custom_param)
+    results = heuristic_models(model, channels, values, has_conv, args=custom_param)
     print(results)
 
     model = "last_click"
     custom_param = None
-    results = heurist_models(model, channels, values, has_conv, args=custom_param)
+    results = heuristic_models(model, channels, values, has_conv, args=custom_param)
     print(results)
