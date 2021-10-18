@@ -120,20 +120,29 @@ class HMODELS:
         self.results = self.__get_results() * value
 
     def generate_df(self):
-        """ """
+        """
+        Generate a DataFrame with the channels passed and
+        the model results
+        """
         self.df = pd.DataFrame(
             {"channel": self.__get_channels(), "result": self.__get_results()}
         )
 
     def get_df(self):
-        """ """
+        """
+        Returns a DataFrame with the channels passed and
+        the model results
+        """
         if self.df is None:
             self.generate_df()
 
         return self.df
 
     def group_results(self):
-        """ """
+        """
+        Returns a groupped DataFrame with the channels passed as keys and
+        the sum of model results.
+        """
         return (
             pd.DataFrame(
                 {
