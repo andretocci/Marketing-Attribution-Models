@@ -102,6 +102,7 @@ class MAM:
         self._linear = None
         self._position_based = None
         self._time_decay = None
+        self._position_decay = None
 
         #####################################################
         ##### Section 1: Creating object and attributes #####
@@ -278,7 +279,7 @@ class MAM:
         #################
 
         self.data_frame = None
-        # self.as_pd_dataframe()
+        # self.get_dataframe()
 
     ######################################
     ##### Section 2: Output methods  #####
@@ -288,7 +289,7 @@ class MAM:
         if self.verbose:
             print(*args, **kwargs)
 
-    def as_pd_dataframe(self):
+    def get_dataframe(self):
         """Return inputed attributes as a Pandas Data Frame on
         self.DataFrame."""
         if not isinstance(self.data_frame, pd.DataFrame):
@@ -406,7 +407,7 @@ class MAM:
         sort_model=None,
         number_of_channels=10,
         other_df=None,
-        **kwargs
+        **kwargs,
     ):
 
         """Barplot of the results that were generated and stored on the
@@ -524,30 +525,56 @@ class MAM:
 
         return new_channels
 
-    def group_by_results_function(self, channels_value, model_name):
+    def __heuristic_model(self, model_name, args=None):
+        """ """
+        journey_res, grouped_res = heuristic_models(
+            model_name,
+            self.channels,
+            self.conversion_value,
+            self.journey_with_conv,
+            self.time_till_conv,
+            args=args,
+        )
+        model_name = f"attribution_{model_name}_heuristic"
+
+        # Adding the results to self.DataFrame
+        self.__save_journey_results(journey_res, model_name)
+
+        # Results part 2: Results
+        self.__save_group_by_results(grouped_res, model_name)
+
+        return journey_res, grouped_res
+
+    def __save_journey_results(self, journey_res, model_name):
+
+        # Adding the results to self.DataFrame
+        self.get_dataframe()
+        self.data_frame[model_name] = (
+            journey_res["result"]
+            .apply(lambda x: self.sep.join([str(value) for value in x]))
+            .copy()
+        )
+
+    def __save_group_by_results(self, grouped_res, model_name):
         """Internal function to generate the group_by_channels_models.
 
         A pandas DF containing the attributed values for each channel
         """
-        channels_list = []
-        self.channels.apply(channels_list.extend)
-        values_list = []
-        channels_value.apply(values_list.extend)
-
-        frame = pd.DataFrame({"channels": channels_list, "value": values_list})
-        frame = frame.groupby(["channels"])["value"].sum()
-
+        # Grouped Results
         if isinstance(self.group_by_channels_models, pd.DataFrame):
-            frame = frame.reset_index()
-            frame.columns = ["channels", model_name]
+            grouped_res = grouped_res.reset_index()
+            grouped_res.columns = ["channels", model_name]
             self.group_by_channels_models = pd.merge(
-                self.group_by_channels_models, frame, how="outer", on=["channels"]
+                self.group_by_channels_models,
+                grouped_res,
+                how="outer",
+                on=["channels"],
             ).fillna(0)
         else:
-            self.group_by_channels_models = frame.reset_index()
+            self.group_by_channels_models = grouped_res.reset_index()
             self.group_by_channels_models.columns = ["channels", model_name]
 
-        return frame
+        return grouped_res
 
     ##############################################
     #
@@ -701,43 +728,8 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models
         """
-        model_name = "attribution_last_click_heuristic"
-
-        journey_res, grouped_res = heuristic_models(
-            "last_click",
-            self.channels,
-            self.conversion_value,
-            self.journey_with_conv,
-            args=None,
-        )
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = (
-            journey_res["result"]
-            .apply(lambda x: self.sep.join([str(value) for value in x]))
-            .copy()
-        )
-
-        # Results part 2: Results
-        if group_by_channels_models:
-
-            # Grouped Results
-            if isinstance(self.group_by_channels_models, pd.DataFrame):
-                grouped_res = grouped_res.reset_index()
-                grouped_res.columns = ["channels", model_name]
-                self.group_by_channels_models = pd.merge(
-                    self.group_by_channels_models,
-                    grouped_res,
-                    how="outer",
-                    on=["channels"],
-                ).fillna(0)
-            else:
-                self.group_by_channels_models = grouped_res.reset_index()
-                self.group_by_channels_models.columns = ["channels", model_name]
-        else:
-            grouped_res = "group_by_channels_models = False"
-
+        model_name = "last_click"
+        journey_res, grouped_res = self.__heuristic_model(model_name)
         self._last_click = (journey_res, grouped_res)
 
         return self._last_click
@@ -756,68 +748,11 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models
         """
-        model_name = "attribution_last_click_non_" + but_not_this_channel + "_heuristic"
-
-        # Results part 1: Column values
-        # Results in the same format as the DF
-        channels_value = self.channels.apply(
-            lambda canais: heuristic.last_click_non(canais, but_not_this_channel)
+        model_name = "last_click_non"
+        journey_res, grouped_res = self.__heuristic_model(
+            model_name, (but_not_this_channel)
         )
-        # multiplying the results with the conversion value
-        channels_value = channels_value * self.conversion_value
-        # multiplying with the boolean column that indicates if the conversion
-        # happened
-        channels_value = channels_value * self.journey_with_conv.apply(int)
-        channels_value = channels_value.apply(lambda values: values.tolist())
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
-        )
-
-        # Results part 2: Results
-        if group_by_channels_models:
-
-            # Selecting the last channel that is not the one chosen
-            channels_series = self.channels.apply(
-                lambda canais: (
-                    canais[-1]
-                    if len([canal for canal in canais if canal != but_not_this_channel])
-                    == 0
-                    else canais[
-                        max(
-                            [
-                                i
-                                for i, canal in enumerate(canais)
-                                if canal != but_not_this_channel
-                            ]
-                        )
-                    ]
-                )
-            )
-
-            # Creating a data_frame where we have the last channel and the
-            # conversion values
-            frame = channels_series.to_frame(name="channels")
-            # multiplying with the boolean column that indicates whether the conversion
-            # happened
-            frame["value"] = self.conversion_value * self.journey_with_conv.apply(int)
-
-            # Grouping by channels and adding the values
-            frame = frame.groupby(["channels"])["value"].sum()
-
-            if isinstance(self.group_by_channels_models, pd.DataFrame):
-                frame = frame.reset_index()
-                frame.columns = ["channels", model_name]
-                self.group_by_channels_models = pd.merge(
-                    self.group_by_channels_models, frame, how="outer", on=["channels"]
-                ).fillna(0)
-            else:
-                self.group_by_channels_models = frame.reset_index()
-                self.group_by_channels_models.columns = ["channels", model_name]
-
-        self._last_click_non = (channels_value, frame)
+        self._last_click_non = (journey_res, grouped_res)
 
         return self._last_click_non
 
@@ -829,54 +764,9 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models.
         """
-        model_name = "attribution_first_click_heuristic"
-
-        # Results part 1: Column values
-        ###############################
-
-        # Results in the same format as the DF
-        channels_value = self.channels.apply(heuristic.first_click)
-        # multiplying the results with the conversion value
-        channels_value = channels_value * self.conversion_value
-        # multiplying with the boolean column that indicates if the conversion
-        # happened
-        channels_value = channels_value * self.journey_with_conv.apply(int)
-        channels_value = channels_value.apply(lambda values: values.tolist())
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
-        )
-
-        # Results part 2: Grouped Results
-        #################################
-
-        if group_by_channels_models:
-            # Selecting first channel from the series
-            channels_series = self.channels.apply(lambda x: x[0])
-
-            # Creating a data_frame where we have the last channel and the
-            # conversion values
-            frame = channels_series.to_frame(name="channels")
-            # multiplying with the boolean column that indicates if the conversion
-            # happened
-            frame["value"] = self.conversion_value * self.journey_with_conv.apply(int)
-
-            # Grouping by channels and adding the values
-            frame = frame.groupby(["channels"])["value"].sum()
-
-            if isinstance(self.group_by_channels_models, pd.DataFrame):
-                frame = frame.reset_index()
-                frame.columns = ["channels", model_name]
-                self.group_by_channels_models = pd.merge(
-                    self.group_by_channels_models, frame, how="outer", on=["channels"]
-                ).fillna(0)
-            else:
-                self.group_by_channels_models = frame.reset_index()
-                self.group_by_channels_models.columns = ["channels", model_name]
-
-        self._first_click = (channels_value, frame)
+        model_name = "first_click"
+        journey_res, grouped_res = self.__heuristic_model(model_name)
+        self._first_click = (journey_res, grouped_res)
 
         return self._first_click
 
@@ -888,26 +778,9 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models.
         """
-        model_name = "attribution_linear_heuristic"
-
-        channels_count = self.channels.apply(len)
-        channels_value = (
-            self.conversion_value * self.journey_with_conv.apply(int) / channels_count
-        ).apply(lambda x: [x]) * channels_count
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
-        )
-
-        # Grouping the attributed values for each channel
-        if group_by_channels_models:
-            frame = self.group_by_results_function(channels_value, model_name)
-        else:
-            frame = "group_by_channels_models = False"
-
-        self._linear = (channels_value, frame)
+        model_name = "linear"
+        journey_res, grouped_res = self.__heuristic_model(model_name)
+        self._linear = (journey_res, grouped_res)
 
         return self._linear
 
@@ -931,41 +804,12 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models
         """
-        if not list_positions_first_middle_last:
-            list_positions_first_middle_last = [0.4, 0.2, 0.4]
 
-        model_name = (
-            "attribution_position_based_"
-            + "_".join([str(value) for value in list_positions_first_middle_last])
-            + "_heuristic"
+        model_name = "position_based"
+        journey_res, grouped_res = self.__heuristic_model(
+            model_name, (list_positions_first_middle_last)
         )
-
-        # Selecting last channel from the series
-        channels_value = self.channels.apply(
-            lambda canais: heuristic.position_based(
-                canais, list_positions_first_middle_last
-            )
-        )
-        # multiplying the results with the conversion value
-        channels_value = channels_value * self.conversion_value
-        # multiplying with the boolean column that indicates if the conversion
-        # happened
-        channels_value = channels_value * self.journey_with_conv.apply(int)
-        channels_value = channels_value.apply(lambda values: values.tolist())
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
-        )
-
-        # Grouping the attributed values for each channel
-        if group_by_channels_models:
-            frame = self.group_by_results_function(channels_value, model_name)
-        else:
-            frame = "group_by_channels_models = False"
-
-        self._position_based = (channels_value, frame)
+        self._position_based = (journey_res, grouped_res)
 
         return self._position_based
 
@@ -979,29 +823,11 @@ class MAM:
 
         OBS: This function is WIP.
         """
-        model_name = "attribution_position_decay_heuristic"
+        model_name = "position_decay"
+        journey_res, grouped_res = self.__heuristic_model(model_name)
+        self._position_decay = (journey_res, grouped_res)
 
-        channels_value = self.channels.apply(heuristic.position_decay)
-        # multiplying the results with the conversion value
-        channels_value = channels_value * self.conversion_value
-        # multiplying with the boolean column that indicates if the conversion
-        # happened
-        channels_value = channels_value * self.journey_with_conv.apply(int)
-        channels_value = channels_value.apply(lambda values: values.tolist())
-
-        # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
-        self.data_frame[model_name] = channels_value.apply(
-            lambda x: self.sep.join([str(value) for value in x])
-        )
-
-        # Grouping the attributed values for each channel
-        if group_by_channels_models:
-            frame = self.group_by_results_function(channels_value, model_name)
-        else:
-            frame = "group_by_channels_models = False"
-
-        return (channels_value, frame)
+        return self._position_decay
 
     def attribution_time_decay(
         self, decay_over_time=0.5, frequency=168, group_by_channels_models=True
@@ -1017,45 +843,15 @@ class MAM:
             Will aggregate the attributed results by each channel on
             self.group_by_channels_models
         """
-        model_name = (
-            "attribution_time_decay"
-            + str(decay_over_time)
-            + "_freq"
-            + str(frequency)
-            + "_heuristic"
-        )
 
         if self.time_till_conv is None:
             print("time_till_conv is None, attribution_time_decay model will not work")
-
         else:
-            # Removing zeros and dividing by the frequency
-            time_till_conv_window = self.time_till_conv.apply(
-                lambda time_till_conv: heuristic.time_decay(
-                    time_till_conv, decay_over_time, frequency
-                )
+            model_name = "time_decay"
+            journey_res, grouped_res = self.__heuristic_model(
+                model_name, args=(decay_over_time, frequency)
             )
-
-            # multiplying the results with the conversion value
-            channels_value = time_till_conv_window * self.conversion_value
-            # multiplying with the boolean column that indicates if the conversion
-            # happened
-            channels_value = channels_value * self.journey_with_conv.apply(int)
-            channels_value = channels_value.apply(lambda values: values.tolist())
-
-            # Adding the results to self.DataFrame
-            self.as_pd_dataframe()
-            self.data_frame[model_name] = channels_value.apply(
-                lambda x: self.sep.join([str(value) for value in x])
-            )
-
-            # Grouping the attributed values for each channel
-            if group_by_channels_models:
-                frame = self.group_by_results_function(channels_value, model_name)
-            else:
-                frame = "group_by_channels_models = False"
-
-        self._time_decay = (channels_value, frame)
+            self._time_decay = (journey_res, grouped_res)
 
         return self._time_decay
 
@@ -1138,7 +934,7 @@ class MAM:
         channels_value = channels_value.apply(lambda x: list(np.array(x) / sum(x)))
 
         # Adding the results to self.DataFrame
-        self.as_pd_dataframe()
+        self.get_dataframe()
         self.data_frame[model_name] = channels_value.apply(
             lambda x: self.sep.join([str(value) for value in x])
         )
