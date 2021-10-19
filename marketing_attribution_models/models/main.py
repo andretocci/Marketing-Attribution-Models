@@ -3,7 +3,9 @@ import pandas as pd
 from my_model import HMODELS
 
 
-def heuristic_models(model_name, channels, conv_value=None, has_conv=None, args=None):
+def heuristic_models(
+    model_name, channels, conv_value=None, has_conv=None, values=None, args=None
+):
     """
     Função que carrega um modelo que foi implementado
     e aplica em um pd.Series contendo listas de canais.
@@ -20,9 +22,9 @@ def heuristic_models(model_name, channels, conv_value=None, has_conv=None, args=
     has_conv : pd.Series
         If value is a pd.Series, obj must be the
         same lenght passed on 'channels' innit
-    has_conv : pd.Series
-        If value is a pd.Series, obj must be the
-        same lenght passed on 'channels' innit
+    values : pd.Series
+        Series containing a lists of values to be used
+        if needed for the model, like the time decay function
 
     Returns
     -------
@@ -30,7 +32,7 @@ def heuristic_models(model_name, channels, conv_value=None, has_conv=None, args=
     """
 
     # Creating the objetc
-    my_model = HMODELS(channels)
+    my_model = HMODELS(channels, values)
 
     # Loading model
     ## Checking if a custom function was passed
@@ -62,15 +64,23 @@ def heuristic_models(model_name, channels, conv_value=None, has_conv=None, args=
 
 if __name__ == "__main__":
     channels = pd.Series([["x", "y", "z"], ["x", "y", "z", "y", "z"], ["z"]])
-    values = pd.Series([1, 7, 22])
+    conv_value = pd.Series([1, 7, 22])
     has_conv = pd.Series([True, True, False])
 
     model = "last_click_non"
     custom_param = "z"
-    results = heuristic_models(model, channels, values, has_conv, args=custom_param)
+    results = heuristic_models(model, channels, conv_value, has_conv, args=custom_param)
     print(results)
 
     model = "last_click"
     custom_param = None
-    results = heuristic_models(model, channels, values, has_conv, args=custom_param)
+    results = heuristic_models(model, channels, conv_value, has_conv, args=custom_param)
+    print(results)
+
+    model = "time_decay"
+    custom_param = None
+    time_values = pd.Series([[1680, 168, 0], [1680, 168, 55, 10, 0], [0]])
+    results = heuristic_models(
+        model, channels, conv_value, has_conv, time_values, args=custom_param
+    )
     print(results)

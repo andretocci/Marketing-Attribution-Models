@@ -7,10 +7,27 @@ import heuristic as ht
 
 
 class HMODELS:
-    def __init__(self, channels):
+    def __init__(self, channels, values=None):
+        """
+        Loads a model from heuristic.py based on
+        the function name
+
+        Parameters
+        ----------
+        channels : pd.Series
+            Series containing a lists of channels
+        values : pd.Series
+            Series containing a lists of values to be used
+            if needed for the model, like the time decay function
+
+        Returns
+        -------
+        None
+        """
         self.model = None
         self.results = None
         self.df = None
+        self.values = values
         self.channels = channels
 
     def load_model(self, model_name):
@@ -83,10 +100,20 @@ class HMODELS:
         -------
         None
         """
-        if args is None:
-            self.results = self.channels.apply(lambda x: self.__get_model()(x))
+        # Parametro values eh opcional caso haja necessidade de passar valores
+        # como no caso do time decay
+        if self.values is None:
+            if args is None:
+                self.results = self.channels.apply(lambda x: self.__get_model()(x))
+            else:
+                self.results = self.channels.apply(
+                    lambda x: self.__get_model()(x, *args)
+                )
         else:
-            self.results = self.channels.apply(lambda x: self.__get_model()(x, *args))
+            if args is None:
+                self.results = self.values.apply(lambda x: self.__get_model()(x))
+            else:
+                self.results = self.values.apply(lambda x: self.__get_model()(x, *args))
 
     def __get_results(self):
         """
