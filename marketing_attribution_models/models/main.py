@@ -1,6 +1,6 @@
 import pandas as pd
 
-from my_model import HMODELS
+from models.my_model import HMODELS
 
 
 def heuristic_models(

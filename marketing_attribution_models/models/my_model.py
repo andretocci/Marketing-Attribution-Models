@@ -3,7 +3,7 @@ from numpy.lib.function_base import diff
 
 import pandas as pd
 
-import heuristic as ht
+import models.heuristic as ht
 
 
 class HMODELS:

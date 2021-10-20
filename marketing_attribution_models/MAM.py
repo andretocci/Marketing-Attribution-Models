@@ -8,12 +8,21 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from .models import heuristic
-from .models.main import heuristic_models
-from .models import markov as mk
-from .data import random_data
-from .data_prep import journey
-from .data_prep import group_data
+# from .models import heuristic
+from models.main import heuristic_models
+import models.markov as mk
+import data.random_data as random_data
+import data_prep.journey as journey
+import data_prep.group_data as group_data
+
+
+# from .models import heuristic
+# from .models.main import heuristic_models
+# from .models import markov as mk
+# from .data import random_data
+# from .data_prep import journey
+# from .data_prep import group_data
+
 
 
 class MAM:

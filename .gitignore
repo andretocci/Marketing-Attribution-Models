@@ -8,3 +8,4 @@ build/*
 .pre-commit-config.yaml
 venv/
 .venv/
+local_test.ipynb
