@@ -1,10 +1,14 @@
 import pandas as pd
 
-from models.my_model import HMODELS
+
+if __name__ == "__main__":
+    from my_model import HMODELS
+else:
+    from models.my_model import HMODELS
 
 
 def heuristic_models(
-    model_name, channels, conv_value=None, has_conv=None, values=None, args=None
+    model_name, channels, conv_value=None, has_conv=None, values=None, *args
 ):
     """
     Função que carrega um modelo que foi implementado
@@ -46,10 +50,8 @@ def heuristic_models(
         my_model.load_model(model_name)
 
     # Fitting the model
-    if args is None:
-        my_model.fit()
-    else:
-        my_model.fit(*args)
+    print(args)
+    my_model.fit(*args)
 
     # Appling value to the results
     if conv_value is not None:
@@ -69,18 +71,16 @@ if __name__ == "__main__":
 
     model = "last_click_non"
     custom_param = "z"
-    results = heuristic_models(model, channels, conv_value, has_conv, args=custom_param)
+    results = heuristic_models(
+        model, channels, conv_value, has_conv, None, custom_param
+    )
     print(results)
 
     model = "last_click"
-    custom_param = None
-    results = heuristic_models(model, channels, conv_value, has_conv, args=custom_param)
+    results = heuristic_models(model, channels, conv_value, has_conv)
     print(results)
 
     model = "time_decay"
-    custom_param = None
     time_values = pd.Series([[1680, 168, 0], [1680, 168, 55, 10, 0], [0]])
-    results = heuristic_models(
-        model, channels, conv_value, has_conv, time_values, args=custom_param
-    )
+    results = heuristic_models(model, channels, conv_value, has_conv, time_values)
     print(results)

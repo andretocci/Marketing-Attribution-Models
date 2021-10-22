@@ -92,7 +92,7 @@ class HMODELS:
         else:
             return self.model
 
-    def fit(self, args=None):
+    def fit(self, *args):
         """
         Apply loaded model.
 
@@ -102,18 +102,11 @@ class HMODELS:
         """
         # Parametro values eh opcional caso haja necessidade de passar valores
         # como no caso do time decay
+        print(args)
         if self.values is None:
-            if args is None:
-                self.results = self.channels.apply(lambda x: self.__get_model()(x))
-            else:
-                self.results = self.channels.apply(
-                    lambda x: self.__get_model()(x, *args)
-                )
+            self.results = self.channels.apply(lambda x: self.__get_model()(x, *args))
         else:
-            if args is None:
-                self.results = self.values.apply(lambda x: self.__get_model()(x))
-            else:
-                self.results = self.values.apply(lambda x: self.__get_model()(x, *args))
+            self.results = self.values.apply(lambda x: self.__get_model()(x, *args))
 
     def __get_results(self):
         """
@@ -184,6 +177,8 @@ class HMODELS:
 
 
 if __name__ == "__main__":
+    import heuristic as ht
+
     channels = pd.Series([["x", "y", "z"], ["x", "y", "z", "y", "z"], ["z"]])
     values = pd.Series([1, 7, 22])
     my_model = HMODELS(channels)

@@ -535,16 +535,26 @@ class MAM:
 
         return new_channels
 
-    def __heuristic_model(self, model_name, args=None):
+    def __heuristic_model(self, model_name, *args):
         """ """
-        journey_res, grouped_res = heuristic_models(
-            model_name,
-            self.channels,
-            self.conversion_value,
-            self.journey_with_conv,
-            self.time_till_conv,
-            args=args,
-        )
+        if model_name == "time_decay":
+            journey_res, grouped_res = heuristic_models(
+                model_name,
+                self.channels,
+                self.conversion_value,
+                self.journey_with_conv,
+                self.time_till_conv,
+                *args,
+            )
+        else:
+            journey_res, grouped_res = heuristic_models(
+                model_name,
+                self.channels,
+                self.conversion_value,
+                self.journey_with_conv,
+                None,
+                *args,
+            )
         model_name = f"attribution_{model_name}_heuristic"
 
         # Adding the results to self.DataFrame
@@ -1238,10 +1248,10 @@ if __name__ == "__main__":
         group_channels=False,
     )
     # model.attribution_all_models()
-    model.attribution_first_click()
+    # model.attribution_first_click()
     model.attribution_last_click()
-    model.attribution_last_click_non("x")
-    model.attribution_linear()
-    model.attribution_position_based()
-    model.attribution_markov()
+    model.attribution_last_click_non("z")
+    # model.attribution_linear()
+    # model.attribution_position_based()
+    # model.attribution_markov()
     print(model.get_grouped_results())
