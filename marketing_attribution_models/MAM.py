@@ -893,7 +893,12 @@ class MAM:
         dest = []
         journey_length = []
 
-        temp.apply(mk.save_orig_dest)
+        def save_orig_dest(arr):
+            orig.extend(arr[:-1])
+            dest.extend(arr[1:])
+            journey_length.append(len(arr))
+
+        temp.apply(save_orig_dest)
 
         # copying conversion_quantity to each new row
         if type(self.conversion_value) in (int, float):
@@ -1238,4 +1243,5 @@ if __name__ == "__main__":
     model.attribution_last_click_non("x")
     model.attribution_linear()
     model.attribution_position_based()
+    model.attribution_markov()
     print(model.get_grouped_results())

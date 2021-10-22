@@ -61,12 +61,3 @@ def path_to_matrix(paths):
     matrix[-1, -1] = 1
     matrix[-2, -2] = 1
     return matrix
-
-
-def save_orig_dest(arr):
-    orig = []
-    dest = []
-    journey_length = []
-    orig.extend(arr[:-1])
-    dest.extend(arr[1:])
-    journey_length.append(len(arr))
