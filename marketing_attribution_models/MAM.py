@@ -24,7 +24,6 @@ import data_prep.group_data as group_data
 # from .data_prep import group_data
 
 
-
 class MAM:
     """MAM (Marketing Attribution Models) is a class inspired on the R Package.
 
@@ -303,17 +302,19 @@ class MAM:
         self.DataFrame."""
         if not isinstance(self.data_frame, pd.DataFrame):
             if isinstance(self.journey_id, pd.DataFrame):
-                self.data_frame = self.journey_id
-                self.data_frame["channels_agg"] = self.channels.apply(self.sep.join)
-                self.data_frame["converted_agg"] = self.journey_with_conv
-                self.data_frame["conversion_value"] = self.conversion_value
+                self.data_frame = self.journey_id.copy()
+                self.data_frame["channels_agg"] = self.channels.apply(
+                    self.sep.join
+                ).copy()
+                self.data_frame["converted_agg"] = self.journey_with_conv.copy()
+                self.data_frame["conversion_value"] = self.conversion_value.copy()
             else:
                 self.data_frame = pd.DataFrame(
                     {
-                        "journey_id": self.journey_id,
-                        "channels_agg": self.channels.apply(self.sep.join),
-                        "converted_agg": self.journey_with_conv,
-                        "conversion_value": self.conversion_value,
+                        "journey_id": self.journey_id.copy(),
+                        "channels_agg": self.channels.apply(self.sep.join).copy(),
+                        "converted_agg": self.journey_with_conv.copy(),
+                        "conversion_value": self.conversion_value.copy(),
                     }
                 )
             if self.time_till_conv is None:
@@ -321,7 +322,7 @@ class MAM:
             else:
                 self.data_frame["time_till_conv_agg"] = self.time_till_conv.apply(
                     lambda x: self.sep.join([str(value) for value in x])
-                )
+                ).copy()
 
         return self.data_frame
 
@@ -1205,3 +1206,25 @@ class MAM:
             frame = "group_by_channels_models=False"
 
         return (conv_table, frame)
+
+
+if __name__ == "__main__":
+    df = pd.DataFrame(
+        {
+            "channels": pd.Series([["x", "y", "z"], ["x", "y", "z", "y", "z"], ["z"]]),
+            "conv_value": pd.Series([1, 7, 22]),
+            "has_conv": pd.Series([True, True, False]),
+            "time_values": pd.Series([[1680, 168, 0], [1680, 168, 55, 10, 0], [0]]),
+        }
+    )
+
+    model = MAM(
+        df=df,
+        time_till_conv_colname="time_values",
+        conversion_value="conv_value",
+        channels_colname="channels",
+        journey_with_conv_colname="has_conv",
+        group_channels=False,
+    )
+    # model.attribution_all_models()
+    model.attribution_first_click()
