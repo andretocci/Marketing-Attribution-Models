@@ -586,6 +586,12 @@ class MAM:
 
         return grouped_res
 
+    def get_grouped_results(self):
+        """
+        Return DF with model results that wore executed.
+        """
+        return self.group_by_channels_models
+
     ##############################################
     #
     #
@@ -1228,3 +1234,8 @@ if __name__ == "__main__":
     )
     # model.attribution_all_models()
     model.attribution_first_click()
+    model.attribution_last_click()
+    model.attribution_last_click_non("x")
+    model.attribution_linear()
+    model.attribution_position_based()
+    print(model.get_grouped_results())
