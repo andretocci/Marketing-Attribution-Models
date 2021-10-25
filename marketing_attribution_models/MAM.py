@@ -776,7 +776,7 @@ class MAM:
         """
         model_name = "last_click_non"
         journey_res, grouped_res = self.__heuristic_model(
-            model_name, (but_not_this_channel)
+            model_name, but_not_this_channel
         )
         self._last_click_non = (journey_res, grouped_res)
 
@@ -833,7 +833,7 @@ class MAM:
 
         model_name = "position_based"
         journey_res, grouped_res = self.__heuristic_model(
-            model_name, (list_positions_first_middle_last)
+            model_name, list_positions_first_middle_last
         )
         self._position_based = (journey_res, grouped_res)
 
@@ -875,7 +875,7 @@ class MAM:
         else:
             model_name = "time_decay"
             journey_res, grouped_res = self.__heuristic_model(
-                model_name, args=(decay_over_time, frequency)
+                model_name, decay_over_time, frequency
             )
             self._time_decay = (journey_res, grouped_res)
 
@@ -1247,11 +1247,12 @@ if __name__ == "__main__":
         journey_with_conv_colname="has_conv",
         group_channels=False,
     )
-    # model.attribution_all_models()
+    model.attribution_all_models()
     # model.attribution_first_click()
-    model.attribution_last_click()
-    model.attribution_last_click_non("z")
+    # model.attribution_last_click()
+    # model.attribution_last_click_non("z")
     # model.attribution_linear()
     # model.attribution_position_based()
     # model.attribution_markov()
     print(model.get_grouped_results())
+    model.get_grouped_results().to_csv("res.csv")

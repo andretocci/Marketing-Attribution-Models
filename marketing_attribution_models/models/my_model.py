@@ -102,7 +102,6 @@ class HMODELS:
         """
         # Parametro values eh opcional caso haja necessidade de passar valores
         # como no caso do time decay
-        print(args)
         if self.values is None:
             self.results = self.channels.apply(lambda x: self.__get_model()(x, *args))
         else:

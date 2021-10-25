@@ -50,7 +50,6 @@ def heuristic_models(
         my_model.load_model(model_name)
 
     # Fitting the model
-    print(args)
     my_model.fit(*args)
 
     # Appling value to the results
